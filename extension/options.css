@@ -7,9 +7,11 @@ button { background:#1e1e1e; color:#fff; border:1px solid #444; padding:6px 12px
 button:hover { background:#2a2a2a; }
 
 pre { font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; }
-.log-output { white-space: pre-wrap; background:#1b1b1b; border:1px solid #333; padding:12px; max-height:65vh; overflow:auto; }
+.log-output { white-space: pre-wrap; background:#1b1b1b; border:1px solid #333; padding:12px; max-height:65vh; overflow:auto; scrollbar-width: none; -ms-overflow-style: none; }
+.log-output::-webkit-scrollbar { display:none; }
 
-.columns { display:flex; gap:12px; align-items:flex-start; flex-wrap:nowrap; overflow-x:auto; }
+.columns { display:flex; gap:12px; align-items:flex-start; flex-wrap:nowrap; overflow-x:auto; scrollbar-width: none; -ms-overflow-style: none; }
+.columns::-webkit-scrollbar { display:none; }
 .tab-col { flex: 0 0 320px; display:flex; flex-direction:column; background:#181818; border:1px solid #333; border-radius:6px; }
 .tab-col header { padding:6px 10px; font-size:12px; font-weight:600; background:#222; border-bottom:1px solid #333; line-height:1.2; }
 .tab-col header .title { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }

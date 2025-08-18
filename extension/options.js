@@ -58,7 +58,17 @@ function render(tabLogs) {
       footer.appendChild(removeBtn);
       col.appendChild(footer);
       columnsWrap.appendChild(col);
+
+      // Auto-scroll to bottom for new content
+      requestAnimationFrame(() => {
+        pre.scrollTop = pre.scrollHeight;
+      });
     });
+
+  // Auto-scroll horizontally to newest column
+  requestAnimationFrame(() => {
+    columnsWrap.scrollLeft = columnsWrap.scrollWidth;
+  });
 }
 
 function fetchLogs() {
