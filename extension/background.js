@@ -4,6 +4,19 @@
 // Structure: { [tabId]: { url, title, entries: [] } }
 let tabLogs = {};
 
+// Connected option page ports for push updates
+const optionPorts = new Set();
+
+function broadcastUpdate(tabId) {
+  optionPorts.forEach((port) => {
+    try {
+      port.postMessage({ type: "logsUpdated", tabId });
+    } catch (e) {
+      optionPorts.delete(port);
+    }
+  });
+}
+
 function loadLogs() {
   chrome.storage.local.get({ tabLogs: {} }, (res) => {
     if (res && typeof res.tabLogs === "object") {
@@ -11,9 +24,11 @@ function loadLogs() {
     }
   });
 }
+
 function persist() {
   chrome.storage.local.set({ tabLogs });
 }
+
 loadLogs();
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -36,7 +51,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
     }
     tabLogs[tabId] = tabInfo;
-    if (added) persist();
+    if (added) {
+      persist();
+      broadcastUpdate(tabId);
+    }
     sendResponse({ ok: true, total: tabInfo.entries.length, tabId });
     return;
   }
@@ -47,6 +65,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "clearLogs") {
     tabLogs = {};
     persist();
+    broadcastUpdate("all");
     sendResponse({ ok: true });
     return;
   }
@@ -54,6 +73,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.tabId != null) {
       delete tabLogs[msg.tabId];
       persist();
+      broadcastUpdate("all");
     }
     sendResponse({ ok: true });
     return;
@@ -71,3 +91,12 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 chrome.runtime.onStartup?.addListener(() => loadLogs());
+
+// Long-lived connection for options page
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name === "options") {
+    optionPorts.add(port);
+    port.onDisconnect.addListener(() => optionPorts.delete(port));
+    port.postMessage({ type: "logsUpdated", tabId: "all" });
+  }
+});

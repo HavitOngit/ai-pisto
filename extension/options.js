@@ -7,6 +7,7 @@ const autoChk = document.getElementById("auto");
 const statsEl = document.getElementById("stats");
 const columnsWrap = document.getElementById("columns");
 let autoTimer = null;
+let port = null;
 
 function el(tag, cls, text) {
   const e = document.createElement(tag);
@@ -86,10 +87,35 @@ refreshBtn.addEventListener("click", fetchLogs);
 clearBtn.addEventListener("click", clearLogs);
 autoChk.addEventListener("change", () => {
   if (autoChk.checked) {
-    autoTimer = setInterval(fetchLogs, 1500);
+    // Fallback polling if port not available
+    if (!port) autoTimer = setInterval(fetchLogs, 1500);
   } else if (autoTimer) {
     clearInterval(autoTimer);
   }
 });
 
+function initPort() {
+  try {
+    port = chrome.runtime.connect({ name: "options" });
+    port.onMessage.addListener((msg) => {
+      if (msg.type === "logsUpdated") {
+        fetchLogs();
+      }
+    });
+    port.onDisconnect.addListener(() => {
+      port = null;
+      // If user wanted auto, resume polling fallback
+      if (autoChk.checked && !autoTimer) {
+        autoTimer = setInterval(fetchLogs, 2000);
+      }
+    });
+  } catch (e) {
+    // Port might fail in some contexts; fallback to polling if auto enabled
+    if (autoChk.checked && !autoTimer) {
+      autoTimer = setInterval(fetchLogs, 2000);
+    }
+  }
+}
+
+initPort();
 fetchLogs();
