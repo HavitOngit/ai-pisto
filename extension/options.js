@@ -11,6 +11,7 @@ const sendAllBtn = document.getElementById("sendAll"); // now located in footer
 let autoTimer = null;
 let port = null;
 let previousTabIds = new Set();
+let lastRenderCounts = {}; // track per tab entry count for update flashes
 
 function el(tag, cls, text) {
   const e = document.createElement(tag);
@@ -68,7 +69,14 @@ function render(tabLogs) {
     footer.appendChild(copyBtn);
     footer.appendChild(removeBtn);
     col.appendChild(footer);
+    // Flash if new entries added (compare previous count)
+    const prevCount = lastRenderCounts[id] || 0;
     columnsWrap.appendChild(col);
+    if (t.entries.length > prevCount) {
+      col.classList.add("flash-update");
+      setTimeout(() => col.classList.remove("flash-update"), 900);
+    }
+    lastRenderCounts[id] = t.entries.length;
 
     // Auto-scroll vertical only (each column) to bottom for new content
     requestAnimationFrame(() => {
@@ -164,6 +172,7 @@ multiInput?.addEventListener("input", () => {
       }
     });
   });
+  pulseInputSync();
 });
 
 function broadcastSubmit() {
@@ -187,6 +196,8 @@ function broadcastSubmit() {
   });
   // Clear input after sending
   multiInput.value = "";
+  autoGrowReset();
+  pulseSend();
 }
 
 sendAllBtn?.addEventListener("click", broadcastSubmit);
@@ -197,6 +208,26 @@ multiInput?.addEventListener("keydown", (e) => {
     broadcastSubmit();
   }
 });
+
+// --- Effects helpers ---
+function pulseInputSync() {
+  document.querySelectorAll(".tab-col").forEach((col) => {
+    col.classList.add("syncing");
+    setTimeout(() => col.classList.remove("syncing"), 900);
+  });
+}
+function pulseSend() {
+  document.querySelectorAll(".tab-col").forEach((col) => {
+    col.classList.add("sending");
+    setTimeout(() => col.classList.remove("sending"), 620);
+  });
+}
+
+function autoGrowReset() {
+  if (multiInput) {
+    multiInput.style.height = "auto";
+  }
+}
 
 // Simple matchPattern implementation for subset we use (*://host/*)
 function matchPattern(pattern, url) {
