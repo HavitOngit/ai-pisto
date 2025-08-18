@@ -3,6 +3,7 @@
 
 const refreshBtn = document.getElementById("refresh");
 const clearBtn = document.getElementById("clear");
+const focusCycleBtn = document.getElementById("focusCycle");
 const autoChk = document.getElementById("auto");
 const statsEl = document.getElementById("stats");
 const columnsWrap = document.getElementById("columns");
@@ -66,8 +67,23 @@ function render(tabLogs) {
         fetchLogs
       );
     });
+    const focusBtn = el("button", "pill-btn", "Focus");
+    focusBtn.addEventListener("click", () => {
+      const targetId = Number(id);
+      chrome.tabs.query({}, (tabs) => {
+        const optionTabId = tabs.find((t) => t.title?.includes("AI Pisto"))?.id;
+        chrome.tabs.update(targetId, { active: true }, () => {
+          // allow a short task microtask for DOM to paint and fire observers
+          setTimeout(() => {
+            if (optionTabId != null)
+              chrome.tabs.update(optionTabId, { active: true });
+          }, 200); // 200ms quick flip
+        });
+      });
+    });
     footer.appendChild(copyBtn);
     footer.appendChild(removeBtn);
+    footer.appendChild(focusBtn);
     col.appendChild(footer);
     // Flash if new entries added (compare previous count)
     const prevCount = lastRenderCounts[id] || 0;
@@ -144,6 +160,47 @@ initPort();
 fetchLogs();
 // Activate auto refresh default if checked initially
 handleAutoToggle();
+
+// --- Focus Cycle: briefly focus each matching AI tab to coax background rendering ---
+focusCycleBtn?.addEventListener("click", () => {
+  focusCycleBtn.disabled = true;
+  const originalText = focusCycleBtn.textContent;
+  focusCycleBtn.textContent = "Cycling...";
+  const targetPatterns = [
+    /https?:\/\/chatgpt\.com\//,
+    /https?:\/\/claude\.ai\//,
+    /https?:\/\/grok\.com\//,
+    /https?:\/\/gemini\.google\.com\//,
+    /https?:\/\/chat\.deepseek\.com\//,
+  ];
+  chrome.tabs.query({}, (tabs) => {
+    const optionTabId = tabs.find((t) => t.title?.includes("AI Pisto"))?.id; // heuristic
+    const aiTabs = tabs.filter(
+      (t) => t.url && targetPatterns.some((r) => r.test(t.url))
+    );
+    let idx = 0;
+    const delayPer = 600; // ms each tab stays active
+    function step() {
+      if (idx >= aiTabs.length) {
+        if (optionTabId != null) {
+          chrome.tabs.update(optionTabId, { active: true }, () => {
+            focusCycleBtn.disabled = false;
+            focusCycleBtn.textContent = originalText || "Cycle";
+          });
+        } else {
+          focusCycleBtn.disabled = false;
+          focusCycleBtn.textContent = originalText || "Cycle";
+        }
+        return;
+      }
+      const tab = aiTabs[idx++];
+      chrome.tabs.update(tab.id, { active: true }, () => {
+        setTimeout(step, delayPer);
+      });
+    }
+    step();
+  });
+});
 
 // Broadcast typed input live (no debounce, but small throttle)
 let lastInject = 0;

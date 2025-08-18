@@ -43,6 +43,10 @@ pre { font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", mo
 .broadcaster textarea:focus { outline:1px solid #3e3e3e; }
 #sendAll { background:#234327; border-color:#2f5a35; color:#d2f7d4; font-weight:600; }
 #sendAll:hover { background:#2c5430; }
+.cycle-bar { position:fixed; bottom:18px; left:18px; display:flex; justify-content:flex-start; gap:8px; z-index:50; }
+.cycle-bar button { background:#262626; border:1px solid #3a3a3a; border-radius:999px; padding:8px 16px; font-size:12px; font-weight:600; letter-spacing:.3px; box-shadow:0 4px 12px -4px rgba(0,0,0,0.45); }
+.cycle-bar button:hover { background:#303030; }
+.cycle-bar button:disabled { opacity:.5; cursor:default; }
 .auto-label { font-size:11px; display:flex; align-items:center; gap:4px; padding:4px 6px; background:#1c1c1c; border:1px solid #2a2a2a; border-radius:4px; }
 .auto-label input { margin:0; }
 
