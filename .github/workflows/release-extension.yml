@@ -1,0 +1,99 @@
+name: Build & Release AI Pisto Extension
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to create (leave blank to only build artifact)"
+        required: false
+      override_version:
+        description: "Override version (otherwise taken from manifest.json)"
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    env:
+      EXT_DIR: extension # adjust if folder name differs
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate extension directory
+        run: |
+          if [ ! -d "$EXT_DIR" ]; then
+            echo "::error::Extension directory '$EXT_DIR' not found."; exit 1; fi
+          ls -la "$EXT_DIR"
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Read version from manifest
+        id: manifest
+        run: |
+          if [ -n "${{ github.event.inputs.override_version }}" ]; then
+            VERSION='${{ github.event.inputs.override_version }}'
+          else
+            VERSION=$(jq -r '.version' "$EXT_DIR/manifest.json")
+          fi
+          echo "Detected version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Ensure tag (manual dispatch only)
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '' }}
+        run: |
+          git tag "${{ github.event.inputs.tag }}" || echo "Tag already exists"
+          git push origin "${{ github.event.inputs.tag }}" || true
+
+      - name: Prepare zip
+        run: |
+          VERSION='${{ steps.manifest.outputs.version }}'
+          mkdir -p dist
+          (cd "$EXT_DIR" && zip -r "../dist/ai-pisto-$VERSION.zip" . -x '*.DS_Store' )
+          ls -lh dist
+
+      - name: Generate SHA256 checksum
+        run: |
+          VERSION='${{ steps.manifest.outputs.version }}'
+          shasum -a 256 "dist/ai-pisto-$VERSION.zip" > "dist/ai-pisto-$VERSION.zip.sha256"
+          cat dist/*.sha256
+
+      - name: Upload artifact (workflow)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-pisto-extension-${{ steps.manifest.outputs.version }}
+          path: |
+            dist/ai-pisto-${{ steps.manifest.outputs.version }}.zip
+            dist/ai-pisto-${{ steps.manifest.outputs.version }}.zip.sha256
+
+      - name: Create / Update Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: AI Pisto v${{ steps.manifest.outputs.version }}
+          draft: false
+          prerelease: false
+          files: |
+            dist/ai-pisto-${{ steps.manifest.outputs.version }}.zip
+            dist/ai-pisto-${{ steps.manifest.outputs.version }}.zip.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          VERSION='${{ steps.manifest.outputs.version }}'
+          {
+            echo "Packaged AI Pisto extension version $VERSION";
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+              echo "Attached to release for tag $GITHUB_REF_NAME";
+            else
+              echo "No tag ref; artifact available in workflow run.";
+            fi;
+          } >> $GITHUB_STEP_SUMMARY
