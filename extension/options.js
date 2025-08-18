@@ -7,7 +7,7 @@ const autoChk = document.getElementById("auto");
 const statsEl = document.getElementById("stats");
 const columnsWrap = document.getElementById("columns");
 const multiInput = document.getElementById("multiInput");
-const sendAllBtn = document.getElementById("sendAll");
+const sendAllBtn = document.getElementById("sendAll"); // now located in footer
 let autoTimer = null;
 let port = null;
 let previousTabIds = new Set();
@@ -99,14 +99,15 @@ function clearLogs() {
 
 refreshBtn.addEventListener("click", fetchLogs);
 clearBtn.addEventListener("click", clearLogs);
-autoChk.addEventListener("change", () => {
+function handleAutoToggle() {
   if (autoChk.checked) {
-    // Fallback polling if port not available
-    if (!port) autoTimer = setInterval(fetchLogs, 1500);
+    if (!port && !autoTimer) autoTimer = setInterval(fetchLogs, 1500);
   } else if (autoTimer) {
     clearInterval(autoTimer);
+    autoTimer = null;
   }
-});
+}
+autoChk.addEventListener("change", handleAutoToggle);
 
 function initPort() {
   try {
@@ -133,36 +134,35 @@ function initPort() {
 
 initPort();
 fetchLogs();
+// Activate auto refresh default if checked initially
+handleAutoToggle();
 
-// Broadcast typed input (debounced)
-let inputDebounce = null;
+// Broadcast typed input live (no debounce, but small throttle)
+let lastInject = 0;
 multiInput?.addEventListener("input", () => {
+  const now = Date.now();
+  if (now - lastInject < 120) return; // throttle
+  lastInject = now;
   const text = multiInput.value;
-  if (inputDebounce) clearTimeout(inputDebounce);
-  inputDebounce = setTimeout(() => {
-    // Query all tabs matching our supported domains and send message
-    const patterns = [
-      "*://chatgpt.com/*",
-      "*://claude.ai/*",
-      "*://grok.com/*",
-      "*://gemini.google.com/*",
-      "*://chat.deepseek.com/*",
-    ];
-    // We need tabs permission (already added) to query
-    chrome.tabs.query({}, (tabs) => {
-      tabs.forEach((tab) => {
-        if (!tab.url) return;
-        if (patterns.some((p) => matchPattern(p, tab.url))) {
-          chrome.tabs.sendMessage(tab.id, { type: "injectInput", text });
-        }
-      });
+  const patterns = [
+    "*://chatgpt.com/*",
+    "*://claude.ai/*",
+    "*://grok.com/*",
+    "*://gemini.google.com/*",
+    "*://chat.deepseek.com/*",
+  ];
+  chrome.tabs.query({}, (tabs) => {
+    tabs.forEach((tab) => {
+      if (!tab.url) return;
+      if (patterns.some((p) => matchPattern(p, tab.url))) {
+        chrome.tabs.sendMessage(tab.id, { type: "injectInput", text });
+      }
     });
-  }, 250);
+  });
 });
 
 function broadcastSubmit() {
   const text = multiInput.value;
-  // Ensure latest text injected before submitting
   const patterns = [
     "*://chatgpt.com/*",
     "*://claude.ai/*",
@@ -180,6 +180,8 @@ function broadcastSubmit() {
       }
     });
   });
+  // Clear input after sending
+  multiInput.value = "";
 }
 
 sendAllBtn?.addEventListener("click", broadcastSubmit);
