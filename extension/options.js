@@ -8,6 +8,7 @@ const statsEl = document.getElementById("stats");
 const columnsWrap = document.getElementById("columns");
 let autoTimer = null;
 let port = null;
+let previousTabIds = new Set();
 
 function el(tag, cls, text) {
   const e = document.createElement(tag);
@@ -17,59 +18,70 @@ function el(tag, cls, text) {
 }
 
 function render(tabLogs) {
+  // Determine if user currently at right edge BEFORE we wipe content
+  const nearRightThreshold = 24; // px
+  const userAtEnd =
+    columnsWrap.scrollLeft + columnsWrap.clientWidth >=
+    columnsWrap.scrollWidth - nearRightThreshold;
+
+  const tabIds = Object.keys(tabLogs).sort((a, b) => Number(a) - Number(b));
+  const newTabAdded = tabIds.some((id) => !previousTabIds.has(id));
+
   columnsWrap.innerHTML = "";
-  const tabIds = Object.keys(tabLogs);
   statsEl.textContent = `${tabIds.length} tab(s) | ${tabIds.reduce(
     (acc, id) => acc + tabLogs[id].entries.length,
     0
   )} total entries`;
-  tabIds
-    .sort((a, b) => Number(a) - Number(b))
-    .forEach((id) => {
-      const t = tabLogs[id];
-      const col = el("div", "tab-col");
-      const header = el("header");
-      const title = el("span", "title", t.title || "Untitled");
-      const url = el(
-        "span",
-        "url",
-        (t.url || "").replace(/^https?:\/\//, "").slice(0, 80)
-      );
-      const count = el("span", "count", `(${t.entries.length})`);
-      header.appendChild(title);
-      header.appendChild(count);
-      header.appendChild(url);
-      col.appendChild(header);
-      const pre = el("pre", "log-output");
-      pre.textContent = t.entries.join("\n\n");
-      col.appendChild(pre);
-      const footer = el("footer");
-      const copyBtn = el("button", "pill-btn", "Copy");
-      copyBtn.addEventListener("click", () => {
-        navigator.clipboard.writeText(t.entries.join("\n\n"));
-      });
-      const removeBtn = el("button", "pill-btn", "Remove");
-      removeBtn.addEventListener("click", () => {
-        chrome.runtime.sendMessage(
-          { type: "removeTabLogs", tabId: Number(id) },
-          fetchLogs
-        );
-      });
-      footer.appendChild(copyBtn);
-      footer.appendChild(removeBtn);
-      col.appendChild(footer);
-      columnsWrap.appendChild(col);
 
-      // Auto-scroll to bottom for new content
-      requestAnimationFrame(() => {
-        pre.scrollTop = pre.scrollHeight;
-      });
+  tabIds.forEach((id) => {
+    const t = tabLogs[id];
+    const col = el("div", "tab-col");
+    const header = el("header");
+    const title = el("span", "title", t.title || "Untitled");
+    const url = el(
+      "span",
+      "url",
+      (t.url || "").replace(/^https?:\/\//, "").slice(0, 80)
+    );
+    const count = el("span", "count", `(${t.entries.length})`);
+    header.appendChild(title);
+    header.appendChild(count);
+    header.appendChild(url);
+    col.appendChild(header);
+    const pre = el("pre", "log-output");
+    pre.textContent = t.entries.join("\n\n");
+    col.appendChild(pre);
+    const footer = el("footer");
+    const copyBtn = el("button", "pill-btn", "Copy");
+    copyBtn.addEventListener("click", () => {
+      navigator.clipboard.writeText(t.entries.join("\n\n"));
     });
+    const removeBtn = el("button", "pill-btn", "Remove");
+    removeBtn.addEventListener("click", () => {
+      chrome.runtime.sendMessage(
+        { type: "removeTabLogs", tabId: Number(id) },
+        fetchLogs
+      );
+    });
+    footer.appendChild(copyBtn);
+    footer.appendChild(removeBtn);
+    col.appendChild(footer);
+    columnsWrap.appendChild(col);
 
-  // Auto-scroll horizontally to newest column
-  requestAnimationFrame(() => {
-    columnsWrap.scrollLeft = columnsWrap.scrollWidth;
+    // Auto-scroll vertical only (each column) to bottom for new content
+    requestAnimationFrame(() => {
+      pre.scrollTop = pre.scrollHeight;
+    });
   });
+
+  previousTabIds = new Set(tabIds);
+
+  // Only auto-scroll horizontally if user was at end and a new column appeared
+  if (userAtEnd && newTabAdded) {
+    requestAnimationFrame(() => {
+      columnsWrap.scrollLeft = columnsWrap.scrollWidth;
+    });
+  }
 }
 
 function fetchLogs() {
