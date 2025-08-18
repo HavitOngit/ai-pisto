@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Validate extension directory
         run: |
@@ -45,11 +47,30 @@ jobs:
           echo "Detected version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Ensure tag (manual dispatch only)
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '' }}
+      - name: Determine tag name
+        id: tagmeta
         run: |
-          git tag "${{ github.event.inputs.tag }}" || echo "Tag already exists"
-          git push origin "${{ github.event.inputs.tag }}" || true
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+            SOURCE="push-tag"
+          elif [[ -n "${{ github.event.inputs.tag }}" ]]; then
+            TAG_NAME='${{ github.event.inputs.tag }}'
+            SOURCE="dispatch-input"
+          else
+            # default derive from version
+            VERSION_FILE=$(jq -r '.version' "$EXT_DIR/manifest.json")
+            TAG_NAME="v${VERSION_FILE}"
+            SOURCE="derived-from-version"
+          fi
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "tag_source=$SOURCE" >> $GITHUB_OUTPUT
+          echo "Using tag: $TAG_NAME (source: $SOURCE)"
+
+      - name: Create tag if needed
+        if: ${{ steps.tagmeta.outputs.tag_source != 'push-tag' }}
+        run: |
+          git tag -f "${{ steps.tagmeta.outputs.tag_name }}"
+          git push origin "refs/tags/${{ steps.tagmeta.outputs.tag_name }}" --force
 
       - name: Prepare zip
         run: |
@@ -74,9 +95,8 @@ jobs:
 
       - name: Create / Update Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ steps.tagmeta.outputs.tag_name }}
           name: AI Pisto v${{ steps.manifest.outputs.version }}
           draft: false
           prerelease: false
@@ -91,9 +111,5 @@ jobs:
           VERSION='${{ steps.manifest.outputs.version }}'
           {
             echo "Packaged AI Pisto extension version $VERSION";
-            if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-              echo "Attached to release for tag $GITHUB_REF_NAME";
-            else
-              echo "No tag ref; artifact available in workflow run.";
-            fi;
+            echo "Release tag: ${{ steps.tagmeta.outputs.tag_name }} (source: ${{ steps.tagmeta.outputs.tag_source }})";
           } >> $GITHUB_STEP_SUMMARY
