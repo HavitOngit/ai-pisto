@@ -1,0 +1,25 @@
+body { font-family: system-ui, Arial, sans-serif; margin: 16px; background: #121212; color: #eee; }
+
+h1 { margin-top: 0; }
+
+.controls { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+button { background:#1e1e1e; color:#fff; border:1px solid #444; padding:6px 12px; border-radius:4px; cursor:pointer; }
+button:hover { background:#2a2a2a; }
+
+pre { font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; }
+.log-output { white-space: pre-wrap; background:#1b1b1b; border:1px solid #333; padding:12px; max-height:65vh; overflow:auto; }
+
+.columns { display:flex; gap:12px; align-items:flex-start; flex-wrap:nowrap; overflow-x:auto; }
+.tab-col { flex: 0 0 320px; display:flex; flex-direction:column; background:#181818; border:1px solid #333; border-radius:6px; }
+.tab-col header { padding:6px 10px; font-size:12px; font-weight:600; background:#222; border-bottom:1px solid #333; line-height:1.2; }
+.tab-col header .title { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tab-col header .url { font-weight:400; opacity:.7; font-size:10px; }
+.tab-col .count { font-size:11px; margin-left:4px; opacity:.7; }
+.tab-col pre { flex:1; margin:0; }
+.tab-col footer { display:flex; gap:6px; padding:4px 6px; border-top:1px solid #333; }
+.pill-btn { background:#2a2a2a; border:1px solid #444; color:#ddd; padding:3px 8px; font-size:11px; border-radius:12px; cursor:pointer; }
+.pill-btn:hover { background:#333; }
+
+.highlight { background: #2d3b00; }
+
+#stats { font-size: 12px; opacity: 0.8; margin-bottom: 8px; }

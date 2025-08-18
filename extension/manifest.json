@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "AI Response Logger",
+  "version": "0.1.0",
+  "description": "Capture page text mutations and show aggregated logs in the options page.",
+  "permissions": ["storage", "tabs"],
+  "host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "background.js" },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["contentScript.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
