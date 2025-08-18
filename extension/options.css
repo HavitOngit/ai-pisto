@@ -25,3 +25,7 @@ pre { font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", mo
 .highlight { background: #2d3b00; }
 
 #stats { font-size: 12px; opacity: 0.8; margin-bottom: 8px; }
+
+.broadcaster { margin-bottom:14px; }
+.broadcaster textarea { width:100%; background:#1b1b1b; color:#eee; border:1px solid #333; border-radius:6px; padding:8px 10px; font-family:inherit; resize:vertical; }
+.broadcaster textarea:focus { outline:2px solid #444; }

@@ -83,3 +83,70 @@ btnObserver.observe(document.body, { childList: true, subtree: true });
 
 // Expose small API for console debugging from the page context
 window.__aiLogger = { dumpAllLogs, dumpSessionLogs, markPromptSubmitted };
+
+// ==== Remote Input Binding Support ====
+// The options page will send {type: 'injectInput', text: '...'} to all tabs.
+// We try different site-specific strategies to put the text into the active editor.
+
+function detectSiteAndSetInput(text) {
+  const loc = location.href;
+  try {
+    if (
+      /^https:\/\/chatgpt\.com\//.test(loc) ||
+      /^https:\/\/claude\.ai\//.test(loc)
+    ) {
+      // ProseMirror editable
+      const editor = document.querySelector(".ProseMirror");
+      if (editor) {
+        // Clear children
+        while (editor.firstChild) editor.removeChild(editor.firstChild);
+        const p = document.createElement("p");
+        p.textContent = text;
+        editor.appendChild(p);
+        // Input events for frameworks
+        editor.dispatchEvent(new Event("input", { bubbles: true }));
+        return true;
+      }
+    }
+    if (/^https:\/\/grok\.com\//.test(loc)) {
+      const field = document.querySelector('[aria-label="Ask Grok anything"]');
+      if (field) {
+        field.value = text;
+        field.dispatchEvent(new Event("input", { bubbles: true }));
+        return true;
+      }
+    }
+    if (/^https:\/\/gemini\.google\.com\//.test(loc)) {
+      const editor = document.querySelector(
+        '[aria-label="Enter a prompt here"]'
+      );
+      if (editor) {
+        while (editor.firstChild) editor.removeChild(editor.firstChild);
+        const p = document.createElement("p");
+        p.textContent = text;
+        editor.appendChild(p);
+        editor.dispatchEvent(new Event("input", { bubbles: true }));
+        return true;
+      }
+    }
+    if (/^https:\/\/chat\.deepseek\.com\//.test(loc)) {
+      const area = document.getElementById("chat-input");
+      if (area) {
+        area.value = text;
+        area.dispatchEvent(new Event("input", { bubbles: true }));
+        return true;
+      }
+    }
+  } catch (e) {
+    console.warn("Inject input failed", e);
+  }
+  return false;
+}
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg && msg.type === "injectInput") {
+    const ok = detectSiteAndSetInput(msg.text || "");
+    sendResponse?.({ ok });
+    return; // synchronous
+  }
+});

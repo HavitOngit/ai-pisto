@@ -6,6 +6,7 @@ const clearBtn = document.getElementById("clear");
 const autoChk = document.getElementById("auto");
 const statsEl = document.getElementById("stats");
 const columnsWrap = document.getElementById("columns");
+const multiInput = document.getElementById("multiInput");
 let autoTimer = null;
 let port = null;
 let previousTabIds = new Set();
@@ -131,3 +132,46 @@ function initPort() {
 
 initPort();
 fetchLogs();
+
+// Broadcast typed input (debounced)
+let inputDebounce = null;
+multiInput?.addEventListener("input", () => {
+  const text = multiInput.value;
+  if (inputDebounce) clearTimeout(inputDebounce);
+  inputDebounce = setTimeout(() => {
+    // Query all tabs matching our supported domains and send message
+    const patterns = [
+      "*://chatgpt.com/*",
+      "*://claude.ai/*",
+      "*://grok.com/*",
+      "*://gemini.google.com/*",
+      "*://chat.deepseek.com/*",
+    ];
+    // We need tabs permission (already added) to query
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach((tab) => {
+        if (!tab.url) return;
+        if (patterns.some((p) => matchPattern(p, tab.url))) {
+          chrome.tabs.sendMessage(tab.id, { type: "injectInput", text });
+        }
+      });
+    });
+  }, 250);
+});
+
+// Simple matchPattern implementation for subset we use (*://host/*)
+function matchPattern(pattern, url) {
+  try {
+    const u = new URL(url);
+    const [schemePart, hostPart] = pattern.split("://");
+    const [hostPattern] = hostPart.split("/");
+    if (schemePart !== "*") {
+      if (u.protocol.replace(":", "") !== schemePart.replace("*", ""))
+        return false;
+    }
+    if (hostPattern !== "*" && hostPattern !== u.host) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
