@@ -140,6 +140,11 @@ handleAutoToggle();
 // Broadcast typed input live (no debounce, but small throttle)
 let lastInject = 0;
 multiInput?.addEventListener("input", () => {
+  // Auto-grow (reset to minimal then expand to content)
+  if (multiInput) {
+    multiInput.style.height = "auto";
+    multiInput.style.height = Math.min(multiInput.scrollHeight, 140) + "px";
+  }
   const now = Date.now();
   if (now - lastInject < 120) return; // throttle
   lastInject = now;

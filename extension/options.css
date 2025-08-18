@@ -31,10 +31,10 @@ pre { font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", mo
 .footer-broadcaster { margin-top:14px; }
 .top-controls { margin-bottom:6px; }
 .bottom-controls { justify-content:flex-end; }
-.floating-broadcaster { position:fixed; bottom:14px; left:14px; right:14px; background:rgba(18,18,18,0.92); backdrop-filter:blur(4px); border:1px solid #262626; border-radius:10px; padding:10px 12px 12px; box-shadow:0 4px 18px -4px rgba(0,0,0,0.6); }
-.floating-broadcaster .input-row { display:flex; gap:8px; align-items:flex-end; }
-.floating-broadcaster textarea { flex:1; resize:vertical; min-height:70px; }
-.floating-broadcaster #sendAll { align-self:stretch; display:flex; align-items:center; justify-content:center; padding:0 18px; font-size:13px; }
+.floating-broadcaster { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:rgba(18,18,18,0.94); backdrop-filter:blur(6px); border:1px solid #2a2a2a; border-radius:12px; padding:10px 12px 12px; box-shadow:0 6px 22px -6px rgba(0,0,0,0.65); max-width:920px; width:clamp(320px, 70vw, 920px); }
+.floating-broadcaster .input-row { display:flex; gap:6px; align-items:flex-end; width:100%; }
+.floating-broadcaster textarea { flex:1; resize:none; min-height:40px; max-height:140px; overflow-y:auto; }
+.floating-broadcaster #sendAll { align-self:stretch; display:flex; align-items:center; justify-content:center; padding:0 16px; font-size:12px; }
 .columns { padding-bottom:140px; }
 .broadcaster textarea { width:100%; background:#181818; color:#f1f1f1; border:1px solid #2d2d2d; border-radius:6px; padding:8px 10px; font-family:inherit; resize:vertical; font-size:13px; line-height:1.35; }
 .broadcaster textarea:focus { outline:1px solid #3e3e3e; }
