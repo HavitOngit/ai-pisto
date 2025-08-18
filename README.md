@@ -49,8 +49,9 @@ Unified multi‑tab AI prompt broadcaster & response logger for ChatGPT, Claude,
    - Press Enter (no Shift) or click Send to broadcast + auto‑submit.
 4. Watch each tab’s column fill with responses in real time.
 5. If a tab lags (background throttling), click its Focus button or use Cycle Tabs.
+   (this will switch all/that tab and back to dashboard automatically)
 6. Copy / Remove logs with the footer buttons.
-7. Clear all logs with Clear.
+7. Clear all logs with Clear Button.
 
 ## 🔍 Forcing Background Rendering
 
