@@ -1,12 +1,15 @@
 {
   "manifest_version": 3,
-  "name": "AI Response Logger",
+  "name": "AI Pisto",
   "version": "0.1.0",
   "description": "Capture page text mutations and show aggregated logs in the options page.",
   "permissions": ["storage", "tabs"],
   "host_permissions": ["<all_urls>"],
   "background": { "service_worker": "background.js" },
   "options_page": "options.html",
+  "icons": {
+    "128": "icons/icon128.png"
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
