@@ -29,3 +29,6 @@ pre { font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", mo
 .broadcaster { margin-bottom:14px; }
 .broadcaster textarea { width:100%; background:#1b1b1b; color:#eee; border:1px solid #333; border-radius:6px; padding:8px 10px; font-family:inherit; resize:vertical; }
 .broadcaster textarea:focus { outline:2px solid #444; }
+.broadcaster-actions { margin-top:6px; display:flex; gap:8px; }
+#sendAll { background:#2d4a22; border:1px solid #466b3b; color:#d6f5d0; padding:6px 14px; border-radius:6px; cursor:pointer; font-weight:600; }
+#sendAll:hover { background:#35602a; }

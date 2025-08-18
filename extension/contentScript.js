@@ -149,4 +149,34 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     sendResponse?.({ ok });
     return; // synchronous
   }
+  if (msg && msg.type === "triggerSubmit") {
+    const clicked = detectAndClickSubmit();
+    sendResponse?.({ ok: clicked });
+    return;
+  }
 });
+
+// ---- Submit button detection & click ----
+function detectAndClickSubmit() {
+  const loc = location.href;
+  let btn = null;
+  try {
+    if (/^https:\/\/chatgpt\.com\//.test(loc)) {
+      btn = document.getElementById("composer-submit-button");
+    } else if (/^https:\/\/grok\.com\//.test(loc)) {
+      btn = document.querySelector('[aria-label="Submit"]');
+    } else if (/^https:\/\/(gemini\.google\.com|claude\.ai)\//.test(loc)) {
+      btn = document.querySelector('[aria-label="Send message"]');
+    } else if (/^https:\/\/chat\.deepseek\.com\//.test(loc)) {
+      const buttons = document.querySelectorAll('[role="button"]');
+      if (buttons.length) btn = buttons[buttons.length - 1];
+    }
+    if (btn) {
+      btn.click();
+      return true;
+    }
+  } catch (e) {
+    console.warn("Submit trigger failed", e);
+  }
+  return false;
+}

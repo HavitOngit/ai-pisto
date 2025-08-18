@@ -7,6 +7,7 @@ const autoChk = document.getElementById("auto");
 const statsEl = document.getElementById("stats");
 const columnsWrap = document.getElementById("columns");
 const multiInput = document.getElementById("multiInput");
+const sendAllBtn = document.getElementById("sendAll");
 let autoTimer = null;
 let port = null;
 let previousTabIds = new Set();
@@ -157,6 +158,37 @@ multiInput?.addEventListener("input", () => {
       });
     });
   }, 250);
+});
+
+function broadcastSubmit() {
+  const text = multiInput.value;
+  // Ensure latest text injected before submitting
+  const patterns = [
+    "*://chatgpt.com/*",
+    "*://claude.ai/*",
+    "*://grok.com/*",
+    "*://gemini.google.com/*",
+    "*://chat.deepseek.com/*",
+  ];
+  chrome.tabs.query({}, (tabs) => {
+    tabs.forEach((tab) => {
+      if (!tab.url) return;
+      if (patterns.some((p) => matchPattern(p, tab.url))) {
+        if (text)
+          chrome.tabs.sendMessage(tab.id, { type: "injectInput", text });
+        chrome.tabs.sendMessage(tab.id, { type: "triggerSubmit" });
+      }
+    });
+  });
+}
+
+sendAllBtn?.addEventListener("click", broadcastSubmit);
+
+multiInput?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    broadcastSubmit();
+  }
 });
 
 // Simple matchPattern implementation for subset we use (*://host/*)
