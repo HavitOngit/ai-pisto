@@ -6,6 +6,10 @@
 
 Unified multi‑tab AI prompt broadcaster & response logger for ChatGPT, Claude, Gemini, Grok, DeepSeek (and easily extensible).
 
+> 🎥 Demo: https://youtu.be/reHNGWP2pxs?si=pxYZaUnIUZNlx11W
+
+_This project was video‑coded with GPT-5._
+
 ---
 
 ## ✨ Features
