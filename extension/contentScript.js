@@ -137,6 +137,37 @@ function detectSiteAndSetInput(text) {
         return true;
       }
     }
+    // --- Generic fallbacks for unknown sites ---
+    // Try focused element if it's an input/textarea/contenteditable
+    const active = document.activeElement;
+    if (active) {
+      if (active.tagName === "TEXTAREA" || active.tagName === "INPUT") {
+        active.value = text;
+        active.dispatchEvent(new Event("input", { bubbles: true }));
+        return true;
+      }
+      if (active.isContentEditable) {
+        active.textContent = text;
+        active.dispatchEvent(new Event("input", { bubbles: true }));
+        return true;
+      }
+    }
+    // Otherwise pick a prominent textarea/input
+    const genericArea = document.querySelector(
+      'textarea, input[type="text"], input[type="search"], [contenteditable="true"]'
+    );
+    if (genericArea) {
+      if (
+        genericArea.tagName === "TEXTAREA" ||
+        genericArea.tagName === "INPUT"
+      ) {
+        genericArea.value = text;
+      } else {
+        genericArea.textContent = text;
+      }
+      genericArea.dispatchEvent(new Event("input", { bubbles: true }));
+      return true;
+    }
   } catch (e) {
     console.warn("Inject input failed", e);
   }

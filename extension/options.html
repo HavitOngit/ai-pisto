@@ -7,6 +7,7 @@
 </head>
 <body>
   <h1 class="app-title"><img src="icons/icon128.png" alt="AI" class="app-logo" /> <span>AI Pisto</span></h1>
+  <button id="helpBtn" class="help-btn" title="Help / Tips">?</button>
   <div class="tagline">This sometimes does not work properly because of Murphy's law</div>
   <div class="controls compact-row top-controls">
     <button id="refresh">Refresh</button>
@@ -22,6 +23,16 @@
     </div>
   </div>
   <div class="cycle-bar inline"><button id="focusCycle" class="pill-btn" title="Cycle focus through all AI tabs to force render">Cycle Tabs</button></div>
+  <dialog id="helpDialog" class="help-dialog">
+    <h2>Help</h2>
+    <ul>
+      <li>Use <strong>Focus</strong> to briefly switch to a particular tab then return here.</li>
+      <li>Use <strong>Cycle Tabs</strong> to switch through all AI tabs and return.</li>
+      <li>Sometimes tabs do not render unless they become active &mdash; use these buttons to force it.</li>
+      <li>If you do not see a tab's logs, reload that tab and wait a moment.</li>
+    </ul>
+    <div class="dialog-actions"><button id="closeHelp" class="pill-btn">Close</button></div>
+  </dialog>
   <script src="options.js"></script>
 </body>
 </html>

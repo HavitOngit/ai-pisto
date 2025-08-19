@@ -9,6 +9,9 @@ const statsEl = document.getElementById("stats");
 const columnsWrap = document.getElementById("columns");
 const multiInput = document.getElementById("multiInput");
 const sendAllBtn = document.getElementById("sendAll"); // now located in footer
+const helpBtn = document.getElementById("helpBtn");
+const helpDialog = document.getElementById("helpDialog");
+const closeHelp = document.getElementById("closeHelp");
 let autoTimer = null;
 let port = null;
 let previousTabIds = new Set();
@@ -180,6 +183,25 @@ initPort();
 fetchLogs();
 // Activate auto refresh default if checked initially
 handleAutoToggle();
+
+// Help dialog events
+helpBtn?.addEventListener("click", () => {
+  if (helpDialog && !helpDialog.open) helpDialog.showModal();
+});
+closeHelp?.addEventListener("click", () => helpDialog?.close());
+helpDialog?.addEventListener("click", (e) => {
+  // click outside content closes
+  const rect = helpDialog.getBoundingClientRect();
+  if (
+    e.target === helpDialog &&
+    (e.clientX < rect.left ||
+      e.clientX > rect.right ||
+      e.clientY < rect.top ||
+      e.clientY > rect.bottom)
+  ) {
+    helpDialog.close();
+  }
+});
 
 // --- Focus Cycle: briefly focus each matching AI tab to coax background rendering ---
 focusCycleBtn?.addEventListener("click", () => {
