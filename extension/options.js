@@ -13,6 +13,25 @@ let autoTimer = null;
 let port = null;
 let previousTabIds = new Set();
 let lastRenderCounts = {}; // track per tab entry count for update flashes
+let currentTabLogs = {}; // snapshot of latest logs keyed by tabId (string keys)
+let optionTabId = null; // store the tab id of the options page for reliable refocus
+
+// Discover and cache the options page tab id
+function cacheOptionTabId() {
+  try {
+    chrome.tabs.query({}, (tabs) => {
+      const optUrl = chrome.runtime.getURL("options.html");
+      const match =
+        tabs.find((t) => t.url === optUrl) ||
+        tabs.find((t) => t.title === document.title);
+      if (match) optionTabId = match.id;
+    });
+  } catch (_) {
+    /* ignore */
+  }
+}
+cacheOptionTabId();
+window.addEventListener("focus", cacheOptionTabId);
 
 function el(tag, cls, text) {
   const e = document.createElement(tag);
@@ -22,6 +41,7 @@ function el(tag, cls, text) {
 }
 
 function render(tabLogs) {
+  currentTabLogs = tabLogs || {};
   // Determine if user currently at right edge BEFORE we wipe content
   const nearRightThreshold = 24; // px
   const userAtEnd =
@@ -70,14 +90,14 @@ function render(tabLogs) {
     const focusBtn = el("button", "pill-btn", "Focus");
     focusBtn.addEventListener("click", () => {
       const targetId = Number(id);
-      chrome.tabs.query({}, (tabs) => {
-        const optionTabId = tabs.find((t) => t.title?.includes("AI Pisto"))?.id;
-        chrome.tabs.update(targetId, { active: true }, () => {
-          // allow a short task microtask for DOM to paint and fire observers
+      // Focus selected tab briefly, then return to options page.
+      chrome.tabs.update(targetId, { active: true }, () => {
+        // double-guarantee returning focus (race-safe)
+        [220, 600].forEach((ms) => {
           setTimeout(() => {
             if (optionTabId != null)
               chrome.tabs.update(optionTabId, { active: true });
-          }, 200); // 200ms quick flip
+          }, ms);
         });
       });
     });
@@ -166,34 +186,52 @@ focusCycleBtn?.addEventListener("click", () => {
   focusCycleBtn.disabled = true;
   const originalText = focusCycleBtn.textContent;
   focusCycleBtn.textContent = "Cycling...";
-  const targetPatterns = [
+  // Only cycle through tabs currently represented in dashboard (currentTabLogs) to avoid unrelated tabs.
+  // Convert stored log keys (string) to numbers and verify they still exist & match patterns.
+  const livePatterns = [
     /https?:\/\/chatgpt\.com\//,
     /https?:\/\/claude\.ai\//,
     /https?:\/\/grok\.com\//,
     /https?:\/\/gemini\.google\.com\//,
     /https?:\/\/chat\.deepseek\.com\//,
   ];
-  chrome.tabs.query({}, (tabs) => {
-    const optionTabId = tabs.find((t) => t.title?.includes("AI Pisto"))?.id; // heuristic
-    const aiTabs = tabs.filter(
-      (t) => t.url && targetPatterns.some((r) => r.test(t.url))
+  chrome.tabs.query({}, (allTabs) => {
+    const candidateIds = Object.keys(currentTabLogs).map((k) => Number(k));
+    const cycleTabs = allTabs.filter(
+      (t) =>
+        t.id != null &&
+        candidateIds.includes(t.id) &&
+        t.url &&
+        livePatterns.some((r) => r.test(t.url))
     );
+    // Preserve visual order based on sorted candidateIds (same as columns) for predictability
+    cycleTabs.sort(
+      (a, b) => candidateIds.indexOf(a.id) - candidateIds.indexOf(b.id)
+    );
+    if (!cycleTabs.length) {
+      // Nothing to cycle
+      focusCycleBtn.disabled = false;
+      focusCycleBtn.textContent = originalText || "Cycle";
+      if (optionTabId != null)
+        chrome.tabs.update(optionTabId, { active: true });
+      return;
+    }
     let idx = 0;
-    const delayPer = 600; // ms each tab stays active
+    const delayPer = 520; // slightly faster cycle
     function step() {
-      if (idx >= aiTabs.length) {
-        if (optionTabId != null) {
-          chrome.tabs.update(optionTabId, { active: true }, () => {
-            focusCycleBtn.disabled = false;
-            focusCycleBtn.textContent = originalText || "Cycle";
-          });
-        } else {
-          focusCycleBtn.disabled = false;
-          focusCycleBtn.textContent = originalText || "Cycle";
-        }
+      if (idx >= cycleTabs.length) {
+        // finished: return focus to options reliably with staggered attempts
+        [0, 180, 400].forEach((ms) =>
+          setTimeout(() => {
+            if (optionTabId != null)
+              chrome.tabs.update(optionTabId, { active: true });
+          }, ms)
+        );
+        focusCycleBtn.disabled = false;
+        focusCycleBtn.textContent = originalText || "Cycle";
         return;
       }
-      const tab = aiTabs[idx++];
+      const tab = cycleTabs[idx++];
       chrome.tabs.update(tab.id, { active: true }, () => {
         setTimeout(step, delayPer);
       });
